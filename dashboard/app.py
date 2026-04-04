@@ -60,71 +60,325 @@ st.set_page_config(
 # ── Professional dark CSS ─────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Dark terminal theme */
-    .stApp { background-color: #0e1117; }
-    section[data-testid="stSidebar"] { background-color: #161b22; }
-    .block-container { padding-top: 1rem; }
+    /* ═════════════════════════════════════════════════════════════════
+       GLOBAL THEME — Bloomberg Terminal Inspired
+       ═════════════════════════════════════════════════════════════════ */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-    /* Glowing header */
+    :root {
+        --bg-primary:    #0a0e14;
+        --bg-secondary:  #111820;
+        --bg-card:       #131a24;
+        --bg-elevated:   #182230;
+        --border-subtle: #1e2d3d;
+        --border-accent: #253449;
+        --text-primary:  #e6edf3;
+        --text-secondary:#8b99a8;
+        --text-muted:    #5a6876;
+        --accent-blue:   #58a6ff;
+        --accent-green:  #3fb950;
+        --accent-red:    #f85149;
+        --accent-orange: #f0883e;
+        --accent-purple: #a371f7;
+        --accent-pink:   #f778ba;
+        --accent-cyan:   #39d2e0;
+        --accent-gold:   #e3b341;
+        --shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
+        --shadow-md:     0 4px 12px rgba(0,0,0,0.5);
+        --shadow-lg:     0 8px 30px rgba(0,0,0,0.6);
+        --shadow-glow:   0 0 20px rgba(88,166,255,0.15);
+        --radius-sm:     6px;
+        --radius-md:     10px;
+        --radius-lg:     14px;
+    }
+
+    /* ── App Container ────────────────────────────────────────────── */
+    .stApp {
+        background: var(--bg-primary) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+        color: var(--text-primary);
+    }
+
+    .block-container {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.5rem !important;
+        max-width: 100% !important;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────────── */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0d1420 0%, #111a26 40%, #0f1720 100%) !important;
+        border-right: 1px solid var(--border-subtle) !important;
+    }
+    section[data-testid="stSidebar"] .stMarkdown h3 {
+        font-family: 'JetBrains Mono', monospace !important;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--accent-blue);
+    }
+    section[data-testid="stSidebar"] .stRadio label {
+        font-size: 0.92rem !important;
+        padding: 6px 10px !important;
+        border-radius: var(--radius-sm) !important;
+        transition: all 0.2s ease !important;
+    }
+    section[data-testid="stSidebar"] .stRadio label:hover {
+        background: var(--bg-elevated) !important;
+    }
+    section[data-testid="stSidebar"] .stSelectbox label,
+    section[data-testid="stSidebar"] .stCaption {
+        color: var(--text-muted) !important;
+        font-size: 0.8rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+
+    /* ── Header Banner ────────────────────────────────────────────── */
     .pro-header {
-        background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2332 100%);
-        border: 1px solid #30363d;
-        border-radius: 8px;
-        padding: 12px 20px;
-        margin-bottom: 16px;
+        background: linear-gradient(135deg, #0d151f 0%, #121d2e 40%, #152238 70%, #0d151f 100%);
+        border: 1px solid var(--border-accent);
+        border-radius: var(--radius-md);
+        padding: 16px 24px;
+        margin-bottom: 18px;
+        box-shadow: var(--shadow-md), inset 0 1px 0 rgba(88,166,255,0.08);
+        position: relative;
+        overflow: hidden;
+    }
+    .pro-header::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-blue), var(--accent-green), var(--accent-orange), var(--accent-purple));
     }
     .pro-header h1 {
-        background: linear-gradient(90deg, #58a6ff, #3fb950, #f0883e);
+        background: linear-gradient(90deg, #58a6ff 0%, #3fb950 35%, #e3b341 65%, #f0883e 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 1.8rem;
-        font-weight: 800;
+        font-family: 'Inter', sans-serif;
+        font-size: 1.7rem;
+        font-weight: 900;
+        letter-spacing: -0.5px;
         margin: 0;
+        text-shadow: none;
+    }
+    .pro-header p {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin: 4px 0 0;
     }
 
-    /* News importance badges */
-    .badge-critical { background: #da3633; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
-    .badge-high { background: #f0883e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
-    .badge-normal { background: #388bfd; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
-
-    /* Metric cards */
+    /* ── Metric Cards ─────────────────────────────────────────────── */
     div[data-testid="stMetric"] {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 8px;
-        padding: 12px;
+        background: linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.25s ease;
+    }
+    div[data-testid="stMetric"]:hover {
+        border-color: var(--accent-blue);
+        box-shadow: var(--shadow-glow);
+        transform: translateY(-1px);
+    }
+    div[data-testid="stMetric"] label {
+        color: var(--text-muted) !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    div[data-testid="stMetric"] > div:nth-child(2) > div:first-child {
+        font-family: 'JetBrains Mono', monospace !important;
+        font-weight: 700 !important;
+        font-size: 1.3rem !important;
     }
 
-    /* Ticker tape */
+    /* ── Ticker Tape ──────────────────────────────────────────────── */
     .ticker-tape {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 4px;
-        padding: 8px 16px;
+        background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-card) 50%, var(--bg-secondary) 100%);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: 10px 20px;
         overflow-x: auto;
         white-space: nowrap;
-        font-family: 'Cascadia Code', 'Fira Code', monospace;
-        font-size: 0.85rem;
+        font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+        font-size: 0.82rem;
+        box-shadow: var(--shadow-sm);
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-accent) transparent;
     }
-    .tk-up { color: #3fb950; font-weight: 600; }
-    .tk-down { color: #f85149; font-weight: 600; }
-    .tk-name { color: #8b949e; }
+    .ticker-tape::-webkit-scrollbar { height: 4px; }
+    .ticker-tape::-webkit-scrollbar-track { background: transparent; }
+    .ticker-tape::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 2px; }
+    .tk-up   { color: var(--accent-green); font-weight: 700; text-shadow: 0 0 8px rgba(63,185,80,0.3); }
+    .tk-down { color: var(--accent-red);   font-weight: 700; text-shadow: 0 0 8px rgba(248,81,73,0.3); }
+    .tk-name { color: var(--text-secondary); font-weight: 500; }
 
-    /* Section headers */
+    /* ── Section Headers ──────────────────────────────────────────── */
     .section-hdr {
-        border-left: 3px solid #58a6ff;
-        padding-left: 12px;
-        margin: 20px 0 10px 0;
+        border-left: 3px solid var(--accent-blue);
+        padding-left: 14px;
+        margin: 24px 0 12px 0;
+    }
+    .section-hdr h4 {
+        color: var(--text-primary) !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        letter-spacing: -0.2px;
+        margin: 0 !important;
     }
 
-    /* Drawing toolbar style */
-    .draw-toolbar {
-        background: #21262d;
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        padding: 6px 12px;
-        margin-bottom: 8px;
+    /* ── News Badges ──────────────────────────────────────────────── */
+    .badge-critical {
+        background: linear-gradient(135deg, #da3633, #b62324);
+        color: white; padding: 3px 10px; border-radius: 12px;
+        font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px;
+        text-transform: uppercase;
+        box-shadow: 0 0 10px rgba(218,54,51,0.3);
     }
+    .badge-high {
+        background: linear-gradient(135deg, #f0883e, #d87030);
+        color: white; padding: 3px 10px; border-radius: 12px;
+        font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+    .badge-normal {
+        background: linear-gradient(135deg, #388bfd, #2563eb);
+        color: white; padding: 3px 10px; border-radius: 12px;
+        font-size: 0.7rem; font-weight: 500;
+    }
+
+    /* ── News Card ────────────────────────────────────────────────── */
+    .news-card {
+        background: linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
+    }
+    .news-card:hover {
+        border-color: var(--accent-blue);
+        box-shadow: var(--shadow-md);
+        transform: translateX(3px);
+    }
+    .news-card .headline {
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    .news-card .meta {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        margin-top: 2px;
+    }
+    .news-card .desc {
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        margin-top: 6px;
+        line-height: 1.4;
+    }
+
+    /* ── Drawing Toolbar ──────────────────────────────────────────── */
+    .draw-toolbar {
+        background: linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+        border: 1px solid var(--border-accent);
+        border-radius: var(--radius-sm);
+        padding: 8px 16px;
+        margin-bottom: 10px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+    .draw-toolbar b { color: var(--accent-cyan); }
+
+    /* ── Strategy Insight Cards ───────────────────────────────────── */
+    .insight-card {
+        border-radius: var(--radius-md);
+        padding: 16px 18px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.25s ease;
+    }
+    .insight-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    .insight-green  { background: linear-gradient(145deg, #0d2818, #0f3020); border: 1px solid #238636; }
+    .insight-blue   { background: linear-gradient(145deg, #0d1b2e, #0f2040); border: 1px solid #1f6feb; }
+    .insight-red    { background: linear-gradient(145deg, #2d1117, #36151c); border: 1px solid #f85149; }
+
+    /* ── DataFrames & Tables ──────────────────────────────────────── */
+    .stDataFrame, div[data-testid="stDataFrame"] {
+        border-radius: var(--radius-md) !important;
+        overflow: hidden !important;
+    }
+    div[data-testid="stDataFrame"] > div {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+    }
+
+    /* ── Buttons & Inputs ─────────────────────────────────────────── */
+    .stSelectbox > div > div,
+    .stMultiSelect > div > div {
+        background: var(--bg-card) !important;
+        border-color: var(--border-subtle) !important;
+        border-radius: var(--radius-sm) !important;
+    }
+    .stSelectbox > div > div:focus-within,
+    .stMultiSelect > div > div:focus-within {
+        border-color: var(--accent-blue) !important;
+        box-shadow: 0 0 0 2px rgba(88,166,255,0.15) !important;
+    }
+
+    /* ── Scrollbar Global ─────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ── Status Badges (Live/Demo) ────────────────────────────────── */
+    div[data-testid="stAlert"] {
+        border-radius: var(--radius-sm) !important;
+        font-size: 0.85rem !important;
+    }
+
+    /* ── Dividers ─────────────────────────────────────────────────── */
+    hr {
+        border: none !important;
+        border-top: 1px solid var(--border-subtle) !important;
+        margin: 12px 0 !important;
+    }
+
+    /* ── Plotly Charts Container ──────────────────────────────────── */
+    .stPlotlyChart {
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    /* ── Smooth Animations ────────────────────────────────────────── */
+    * { transition-property: background-color, border-color, box-shadow, transform, opacity;
+        transition-duration: 0.15s;
+        transition-timing-function: ease-out; }
+
+    /* ── Expander ─────────────────────────────────────────────────── */
+    .streamlit-expanderHeader {
+        background: var(--bg-card) !important;
+        border-radius: var(--radius-sm) !important;
+        font-weight: 600 !important;
+    }
+
+    /* ── Toggle Switch ────────────────────────────────────────────── */
+    .stToggle label span {
+        font-size: 0.88rem !important;
+    }
+
+    /* ── Page Footer ──────────────────────────────────────────────── */
+    footer { visibility: hidden; }
+    #MainMenu { visibility: hidden; }
+    header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -544,14 +798,11 @@ elif page == "📰 News Room":
             ticker_badge = f" | 📌 {tickers_str}" if tickers_str != "—" else ""
 
             st.markdown(f"""
-            <div style="background:#161b22; border:1px solid #30363d; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
+            <div class="news-card">
                 <span class="{badge_cls}">{imp.upper()}</span>
-                <span style="color:#8b949e; margin-left:8px;">{row['Time']} • {row['Source']}</span>
-                <span style="color:#8b949e; margin-left:8px;">({row['Category']}){ticker_badge}</span>
-                <br>
-                <span style="color:#e6edf3; font-size:0.95rem; font-weight:500;">{row['Headline']}</span>
-                <br>
-                <span style="color:#8b949e; font-size:0.8rem;">{row.get('Description', '')[:150]}</span>
+                <span class="meta" style="margin-left:10px;">{row['Time']} &bull; {row['Source']} &bull; {row['Category']}{ticker_badge}</span>
+                <div class="headline" style="margin-top:6px;">{row['Headline']}</div>
+                <div class="desc">{row.get('Description', '')[:150]}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -1130,26 +1381,26 @@ elif page == "🎯 Strategy Hub":
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown(f"""
-            <div style="background:#0d2818; border:1px solid #238636; border-radius:8px; padding:14px;">
-                <b style="color:#3fb950;">🏆 Best P&L: {best_strat[0]}</b><br>
-                <span style="color:#8b949e;">Total: ₹{best_strat[1]['total_pnl']:+,.2f}</span><br>
-                <span style="color:#8b949e;">Win Rate: {best_strat[1]['win_rate_pct']:.1f}%</span>
+            <div class="insight-card insight-green">
+                <b style="color:#3fb950; font-size:1.05rem;">🏆 Best P&L: {best_strat[0]}</b><br>
+                <span style="color:#8b99a8; font-size:0.9rem;">Total: ₹{best_strat[1]['total_pnl']:+,.2f}</span><br>
+                <span style="color:#8b99a8; font-size:0.9rem;">Win Rate: {best_strat[1]['win_rate_pct']:.1f}%</span>
             </div>
             """, unsafe_allow_html=True)
         with c2:
             st.markdown(f"""
-            <div style="background:#1a1a2e; border:1px solid #388bfd; border-radius:8px; padding:14px;">
-                <b style="color:#388bfd;">📊 Best Win Rate: {best_wr[0]}</b><br>
-                <span style="color:#8b949e;">Rate: {best_wr[1]['win_rate_pct']:.1f}%</span><br>
-                <span style="color:#8b949e;">P&L: ₹{best_wr[1]['total_pnl']:+,.2f}</span>
+            <div class="insight-card insight-blue">
+                <b style="color:#58a6ff; font-size:1.05rem;">📊 Best Win Rate: {best_wr[0]}</b><br>
+                <span style="color:#8b99a8; font-size:0.9rem;">Rate: {best_wr[1]['win_rate_pct']:.1f}%</span><br>
+                <span style="color:#8b99a8; font-size:0.9rem;">P&L: ₹{best_wr[1]['total_pnl']:+,.2f}</span>
             </div>
             """, unsafe_allow_html=True)
         with c3:
             st.markdown(f"""
-            <div style="background:#2d1117; border:1px solid #f85149; border-radius:8px; padding:14px;">
-                <b style="color:#f85149;">⚠️ Needs Review: {worst_strat[0]}</b><br>
-                <span style="color:#8b949e;">P&L: ₹{worst_strat[1]['total_pnl']:+,.2f}</span><br>
-                <span style="color:#8b949e;">Win Rate: {worst_strat[1]['win_rate_pct']:.1f}%</span>
+            <div class="insight-card insight-red">
+                <b style="color:#f85149; font-size:1.05rem;">⚠️ Needs Review: {worst_strat[0]}</b><br>
+                <span style="color:#8b99a8; font-size:0.9rem;">P&L: ₹{worst_strat[1]['total_pnl']:+,.2f}</span><br>
+                <span style="color:#8b99a8; font-size:0.9rem;">Win Rate: {worst_strat[1]['win_rate_pct']:.1f}%</span>
             </div>
             """, unsafe_allow_html=True)
     else:
