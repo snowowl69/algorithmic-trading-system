@@ -86,9 +86,6 @@ class TradeDatabase:
         """)
         conn.commit()
         log.info("Trade database ready at %s", self._path)
-
-    # ── Trade CRUD ────────────────────────────────────────────────────
-
     def insert_trade(self, trade: Dict[str, Any]) -> int:
         conn = self._conn()
         cur = conn.execute(
@@ -172,9 +169,6 @@ class TradeDatabase:
     def trade_count(self) -> int:
         conn = self._conn()
         return conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
-
-    # ── Equity snapshots ──────────────────────────────────────────────
-
     def insert_equity_snapshot(
         self, equity: float, cash: float, pnl: float = 0.0
     ) -> None:
@@ -191,9 +185,6 @@ class TradeDatabase:
             "SELECT * FROM equity_snapshots ORDER BY id"
         ).fetchall()
         return [dict(r) for r in rows]
-
-    # ── Position snapshots ────────────────────────────────────────────
-
     def upsert_position(self, pos: Dict[str, Any]) -> None:
         conn = self._conn()
         conn.execute(

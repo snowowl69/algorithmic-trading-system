@@ -59,36 +59,62 @@ def _load_finbert():
 
 def _fetch_headlines(ticker: str, max_results: int = 20) -> List[Dict]:
     """
-    Fetch recent headlines mentioning *ticker* from NewsAPI.
+    Fetch recent headlines mentioning *ticker* from Finnhub.
 
     Returns a list of dicts with keys: ``title``, ``source``, ``publishedAt``.
     """
-    if not NLP.news_api_key:
-        log.warning("NEWS_API_KEY not set — returning empty headlines")
+    from data_engine.news_feed import FINNHUB_API_KEY
+    if not FINNHUB_API_KEY:
+        log.warning("FINNHUB_API_KEY not set — returning empty headlines")
         return []
 
+    # Get today and 3 days ago for company news range
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    from_date = (datetime.now(timezone.utc) - __import__('datetime').timedelta(days=3)).strftime("%Y-%m-%d")
+
+    url = f"https://finnhub.io/api/v1/company-news"
     params = {
-        "q": ticker,
-        "language": "en",
-        "sortBy": "publishedAt",
-        "pageSize": max_results,
-        "apiKey": NLP.news_api_key,
+        "symbol": ticker,
+        "from": from_date,
+        "to": today,
+        "token": FINNHUB_API_KEY,
     }
     try:
-        resp = requests.get(NLP.news_api_url, params=params, timeout=10)
+        resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
-        articles = resp.json().get("articles", [])
+        articles = resp.json()
+        if not isinstance(articles, list):
+            return []
+        
+        results = []
+        for a in articles[:max_results]:
+            title = a.get("headline", "")
+            if title:
+                # Convert unix timestamp to ISO format string
+                pub_dt = datetime.fromtimestamp(a.get("datetime", time.time()), tz=timezone.utc)
+                results.append({
+                    "title": title,
+                    "source": a.get("source", "Finnhub"),
+                    "publishedAt": pub_dt.isoformat(),
+                })
+        return results
+    except requests.exceptions.RequestException as e:
+        log.warning("Failed to fetch headlines for %s: %s (using synthetic data)", ticker, type(e).__name__)
+        # Fallback to synthetic data to keep the simulation alive when offline/rate-limited
         return [
             {
-                "title": a.get("title", ""),
-                "source": a.get("source", {}).get("name", "unknown"),
-                "publishedAt": a.get("publishedAt", ""),
+                "title": f"{ticker} expected to exceed earnings estimates next quarter.",
+                "source": "Synthetic News",
+                "publishedAt": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "title": f"Market concerns over {ticker} supply chain disruptions.",
+                "source": "Synthetic News",
+                "publishedAt": (datetime.now(timezone.utc) - __import__('datetime').timedelta(hours=2)).isoformat()
             }
-            for a in articles
-            if a.get("title")
         ]
     except Exception:
-        log.exception("Failed to fetch headlines for %s", ticker)
+        log.warning("Failed to parse headlines for %s (using synthetic data)", ticker)
         return []
 
 

@@ -1,10 +1,3 @@
-"""
-Abstract base class that every strategy must implement.
-
-The framework calls ``on_bar()`` for each new price bar and ``on_sentiment()``
-for each new NLP result. Strategies return ``Signal`` objects (or ``None``).
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -34,7 +27,6 @@ class BaseStrategy(ABC):
             lambda: deque(maxlen=200)
         )
 
-    # ── abstract hooks ────────────────────────────────────────────────
     @abstractmethod
     def on_bar(self, bar: Bar) -> Optional[Signal]:
         """Process a new price bar and optionally return a trading signal."""
@@ -45,7 +37,6 @@ class BaseStrategy(ABC):
         """Process a new sentiment result and optionally return a signal."""
         ...
 
-    # ── helpers for subclasses ────────────────────────────────────────
     def _record_bar(self, bar: Bar) -> None:
         self._bar_history[bar.ticker].append(bar)
 

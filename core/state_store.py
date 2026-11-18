@@ -51,6 +51,8 @@ def publish_snapshot(
     sentiment_feed: List[Dict],
     trade_log: List[Dict],
     equity_curve: List[Dict],
+    prev_closes: Dict[str, float] = None,
+    dividends: List[Dict] = None,
 ) -> None:
     """Convenience wrapper — packs all dashboard data into one write."""
     write_state({
@@ -60,6 +62,8 @@ def publish_snapshot(
         "sentiment_feed": sentiment_feed,
         "trade_log": trade_log,
         "equity_curve": equity_curve,
+        "prev_closes": prev_closes or {},
+        "dividends": dividends or [],
     })
 
 
@@ -71,22 +75,25 @@ def read_state() -> Optional[Dict[str, Any]]:
     """Read the latest state from disk, or return None if no file exists."""
     if not _STATE_FILE.exists():
         return None
-    try:
-        raw = _STATE_FILE.read_text(encoding="utf-8")
-        return json.loads(raw)
-    except (json.JSONDecodeError, OSError):
-        log.warning("Failed to read state file")
-        return None
+    for _attempt in range(2):
+        try:
+            raw = _STATE_FILE.read_text(encoding="utf-8")
+            return json.loads(raw)
+        except (json.JSONDecodeError, OSError):
+            if _attempt == 0:
+                time.sleep(0.05)
+    log.warning("Failed to read state file after retry")
+    return None
 
 
-def is_live() -> bool:
-    """Return True if the state file was updated in the last 30 seconds."""
+def is_live(staleness_seconds: float = 30.0) -> bool:
+    """Return True if the state file was updated within *staleness_seconds*."""
     state = read_state()
     if state is None:
         return False
     try:
         updated = datetime.fromisoformat(state["_updated_at"])
         age = (datetime.now(timezone.utc) - updated).total_seconds()
-        return age < 30
+        return age < staleness_seconds
     except (KeyError, ValueError):
         return False

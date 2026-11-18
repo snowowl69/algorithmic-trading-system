@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -67,7 +67,7 @@ class Bar:
 class Signal:
     """A trading signal emitted by a strategy."""
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     ticker: str = ""
     signal_type: SignalType = SignalType.NEUTRAL
     strategy_name: str = ""
@@ -79,7 +79,7 @@ class Signal:
 class Order:
     """Broker order representation."""
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     ticker: str = ""
     side: Side = Side.BUY
     order_type: OrderType = OrderType.MARKET
@@ -128,7 +128,7 @@ class SentimentResult:
 @dataclass
 class PortfolioSnapshot:
     """Point-in-time snapshot of account state."""
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     equity: float = 0.0
     cash: float = 0.0
     buying_power: float = 0.0

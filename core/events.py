@@ -7,6 +7,7 @@ Thread-safe; callbacks are invoked synchronously in the publisher thread.
 
 from __future__ import annotations
 
+import queue
 import threading
 from collections import defaultdict
 from typing import Any, Callable, Dict, List
@@ -36,6 +37,18 @@ class EventBus:
     def subscribe(self, channel: str, callback: Callback) -> None:
         self._subscribers[channel].append(callback)
         log.debug("Subscribed %s → %s", callback.__qualname__, channel)
+
+    def unsubscribe(self, channel: str, callback: Callback) -> None:
+        """Remove *callback* from *channel*. No-op if not subscribed."""
+        try:
+            self._subscribers[channel].remove(callback)
+            log.debug("Unsubscribed %s ← %s", callback.__qualname__, channel)
+        except ValueError:
+            pass
+
+    def subscriber_count(self, channel: str) -> int:
+        """Return the number of subscribers on *channel*."""
+        return len(self._subscribers.get(channel, []))
 
     def publish(self, channel: str, payload: Any = None) -> None:
         for cb in self._subscribers.get(channel, []):

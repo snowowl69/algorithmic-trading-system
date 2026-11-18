@@ -45,20 +45,28 @@ class RiskConfig:
     max_open_positions: int = 10
     slippage_bps: float = 5.0                      # 5 basis points assumed slippage
     commission_per_share: float = 0.0              # adjust for your broker
+    # ── Trailing stop (new) ──
+    trailing_stop_enabled: bool = True             # ratchet SL as price moves in favor
+    trailing_stop_atr_multiplier: float = 2.5      # trail by N × ATR
+    # ── Dynamic Kelly (new) ──
+    dynamic_kelly_window: int = 50                 # rolling trade window for win_rate / R
+    dynamic_kelly_min_trades: int = 10             # minimum trades before switching from defaults
+    # ── Volume-aware slippage (new) ──
+    volume_impact_factor: float = 0.1              # slippage multiplier = 1 + factor * (qty / ADV)
 
 
 @dataclass(frozen=True)
 class StrategyConfig:
     """Strategy hyper-parameters."""
     # Momentum / MA crossover
-    momentum_fast_window: int = 10
-    momentum_slow_window: int = 50
+    momentum_fast_window: int = 5
+    momentum_slow_window: int = 15
     # Mean reversion
-    mean_rev_lookback: int = 20
-    mean_rev_z_entry: float = 2.0
-    mean_rev_z_exit: float = 0.5
+    mean_rev_lookback: int = 10
+    mean_rev_z_entry: float = 1.2
+    mean_rev_z_exit: float = 0.2
     # Sentiment
-    sentiment_extreme_score: float = 0.75  # absolute score threshold
+    sentiment_extreme_score: float = 0.35  # absolute score threshold
 
 
 @dataclass(frozen=True)

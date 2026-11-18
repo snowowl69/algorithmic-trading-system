@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 dist/
 build/
@@ -10,28 +11,37 @@ build/
 .venv/
 venv/
 env/
+ENV/
 
-# IDE
+# IDE & Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Environment & secrets
+# Environment & Secrets
 .env
-.env.local
+.env.*
+!.env.example
 
-# OS
+# Operating System
 Thumbs.db
 .DS_Store
 
-# Data / logs
+# Data, Logs & Databases (Strict Data Safety)
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.rdb
 *.log
 data/
 logs/
 
-# Streamlit
+# Streamlit Cache
 .streamlit/
 
-# Model cache
+# Testing & Cache
+.pytest_cache/
 models_cache/
+repos.txt

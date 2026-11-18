@@ -66,30 +66,30 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
     :root {
-        --bg-primary:    #0a0e14;
-        --bg-secondary:  #111820;
-        --bg-card:       #131a24;
-        --bg-elevated:   #182230;
-        --border-subtle: #1e2d3d;
-        --border-accent: #253449;
-        --text-primary:  #e6edf3;
-        --text-secondary:#8b99a8;
-        --text-muted:    #5a6876;
-        --accent-blue:   #58a6ff;
-        --accent-green:  #3fb950;
-        --accent-red:    #f85149;
-        --accent-orange: #f0883e;
-        --accent-purple: #a371f7;
-        --accent-pink:   #f778ba;
-        --accent-cyan:   #39d2e0;
-        --accent-gold:   #e3b341;
-        --shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
-        --shadow-md:     0 4px 12px rgba(0,0,0,0.5);
-        --shadow-lg:     0 8px 30px rgba(0,0,0,0.6);
-        --shadow-glow:   0 0 20px rgba(88,166,255,0.15);
-        --radius-sm:     6px;
-        --radius-md:     10px;
-        --radius-lg:     14px;
+        --bg-primary:    #000000;
+        --bg-secondary:  #080808;
+        --bg-card:       #0a0a0a;
+        --bg-elevated:   #111111;
+        --border-subtle: #1c1c1c;
+        --border-accent: #333333;
+        --text-primary:  #f0f0f0;
+        --text-secondary:#a0a0a0;
+        --text-muted:    #666666;
+        --accent-blue:   #ffffff;
+        --accent-green:  #00ff41;
+        --accent-red:    #ff3333;
+        --accent-orange: #a0a0a0;
+        --accent-purple: #a0a0a0;
+        --accent-pink:   #a0a0a0;
+        --accent-cyan:   #a0a0a0;
+        --accent-gold:   #a0a0a0;
+        --shadow-sm:     none;
+        --shadow-md:     none;
+        --shadow-lg:     none;
+        --shadow-glow:   0 0 10px rgba(255,255,255,0.05);
+        --radius-sm:     2px;
+        --radius-md:     4px;
+        --radius-lg:     6px;
     }
 
     /* ── App Container ────────────────────────────────────────────── */
@@ -107,14 +107,14 @@ st.markdown("""
 
     /* ── Sidebar ──────────────────────────────────────────────────── */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0d1420 0%, #111a26 40%, #0f1720 100%) !important;
+        background: #050505 !important;
         border-right: 1px solid var(--border-subtle) !important;
     }
     section[data-testid="stSidebar"] .stMarkdown h3 {
         font-family: 'JetBrains Mono', monospace !important;
         font-weight: 700;
         letter-spacing: 0.5px;
-        color: var(--accent-blue);
+        color: var(--text-primary);
     }
     section[data-testid="stSidebar"] .stRadio label {
         font-size: 0.92rem !important;
@@ -135,12 +135,11 @@ st.markdown("""
 
     /* ── Header Banner ────────────────────────────────────────────── */
     .pro-header {
-        background: linear-gradient(135deg, #0d151f 0%, #121d2e 40%, #152238 70%, #0d151f 100%);
-        border: 1px solid var(--border-accent);
-        border-radius: var(--radius-md);
+        background: #0a0a0a;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
         padding: 16px 24px;
         margin-bottom: 18px;
-        box-shadow: var(--shadow-md), inset 0 1px 0 rgba(88,166,255,0.08);
         position: relative;
         overflow: hidden;
     }
@@ -149,15 +148,13 @@ st.markdown("""
         position: absolute;
         top: 0; left: 0; right: 0;
         height: 2px;
-        background: linear-gradient(90deg, var(--accent-blue), var(--accent-green), var(--accent-orange), var(--accent-purple));
+        background: var(--border-accent);
     }
     .pro-header h1 {
-        background: linear-gradient(90deg, #58a6ff 0%, #3fb950 35%, #e3b341 65%, #f0883e 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: var(--text-primary);
         font-family: 'Inter', sans-serif;
-        font-size: 1.7rem;
-        font-weight: 900;
+        font-size: 1.6rem;
+        font-weight: 800;
         letter-spacing: -0.5px;
         margin: 0;
         text-shadow: none;
@@ -170,17 +167,15 @@ st.markdown("""
 
     /* ── Metric Cards ─────────────────────────────────────────────── */
     div[data-testid="stMetric"] {
-        background: linear-gradient(145deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+        background: var(--bg-card);
         border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-sm);
         padding: 14px 16px;
-        box-shadow: var(--shadow-sm);
-        transition: all 0.25s ease;
+        transition: all 0.2s ease;
     }
     div[data-testid="stMetric"]:hover {
-        border-color: var(--accent-blue);
-        box-shadow: var(--shadow-glow);
-        transform: translateY(-1px);
+        border-color: var(--border-accent);
+        background: var(--bg-elevated);
     }
     div[data-testid="stMetric"] label {
         color: var(--text-muted) !important;
@@ -218,8 +213,8 @@ st.markdown("""
 
     /* ── Section Headers ──────────────────────────────────────────── */
     .section-hdr {
-        border-left: 3px solid var(--accent-blue);
-        padding-left: 14px;
+        border-left: 2px solid var(--border-accent);
+        padding-left: 10px;
         margin: 24px 0 12px 0;
     }
     .section-hdr h4 {
@@ -422,6 +417,8 @@ def _load_live_state() -> dict | None:
             "sentiment_feed": sentiment_feed,
             "trade_log": trade_log,
             "closed_trades": raw.get("closed_trades") or [],
+            "prev_closes": raw.get("prev_closes") or {},
+            "dividends": raw.get("dividends") or [],
         }
     except (KeyError, TypeError):
         return None
@@ -561,15 +558,15 @@ stats = data.get("analytics") or {}
 #  Sidebar — Professional Controls
 # ═══════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("### 🏦 AlgoTerminal Pro")
+    st.markdown("### AlgoTerminal Pro")
     st.caption("Institutional-Grade Trading System")
     st.divider()
 
     # Navigation
     page = st.radio(
         "Navigate",
-        ["📊 Terminal", "📰 News Room", "📈 Chart Lab", "💰 P&L Analytics",
-         "🎯 Strategy Hub", "📋 Trade Log"],
+        ["Terminal", "News Room", "Chart Lab", "P&L Analytics",
+         "Strategy Hub", "Trade Log", "Dividends"],
         label_visibility="collapsed",
     )
     st.divider()
@@ -593,18 +590,73 @@ with st.sidebar:
 
     selected_ticker = st.selectbox("Select Stock", stock_list)
     st.divider()
+    
+    # Dynamic Add Stock
+    st.markdown("### Add Stock to Tracker")
+    new_ticker = st.text_input("NSE Symbol (e.g. TATASTEEL)", key="add_ticker")
+    if st.button("Add Ticker", use_container_width=True):
+        if new_ticker:
+            tk_upper = new_ticker.strip().upper()
+            try:
+                import os
+                txt_path = os.path.join("data", "dynamic_tickers.txt")
+                os.makedirs("data", exist_ok=True)
+                with open(txt_path, "a", encoding="utf-8") as f:
+                    f.write(tk_upper + "\n")
+                st.success(f"Added {tk_upper} to tracking queue")
+            except Exception as e:
+                st.error(f"Error: {e}")
 
-    auto_refresh = st.toggle("Auto-refresh (5s)", value=False)
+    st.divider()
+    
+    # Manual Trade Entry
+    st.markdown("### Log Manual Trade")
+    with st.form("manual_trade_form", clear_on_submit=True):
+        col_t1, col_t2 = st.columns(2)
+        m_ticker = col_t1.text_input("Ticker", placeholder="INFY")
+        m_side = col_t2.selectbox("Side", ["BUY", "SELL"])
+        col_t3, col_t4 = st.columns(2)
+        m_qty = col_t3.number_input("Qty", min_value=1, value=10)
+        m_entry = col_t4.number_input("Entry Price", min_value=0.0, value=100.0, format="%.2f")
+        m_exit = st.number_input("Exit Price (optional)", min_value=0.0, value=0.0, format="%.2f")
+        if st.form_submit_button("Save Trade", use_container_width=True):
+            if m_ticker:
+                try:
+                    import json, os, uuid, datetime
+                    trade_path = os.path.join("data", "manual_trades.json")
+                    os.makedirs("data", exist_ok=True)
+                    m_trade = {
+                        "id": str(uuid.uuid4())[:8],
+                        "ticker": m_ticker.upper(),
+                        "side": m_side.lower(),
+                        "qty": m_qty,
+                        "entry": m_entry,
+                        "exit": m_exit if m_exit > 0 else m_entry,
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "strategy": "manual"
+                    }
+                    existing = []
+                    if os.path.exists(trade_path):
+                        with open(trade_path, "r", encoding="utf-8") as f:
+                            existing = json.load(f)
+                    existing.append(m_trade)
+                    with open(trade_path, "w", encoding="utf-8") as f:
+                        json.dump(existing, f)
+                    st.success(f"Trade saved for {m_ticker.upper()}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
+    st.divider()
+    
     if live_mode:
-        st.success("🟢 LIVE ENGINE")
+        st.success("[LIVE ENGINE] 1s Refresh")
     else:
-        st.warning("🟡 DEMO MODE")
+        st.warning("[DEMO MODE]")
 
     if snap.get("halted"):
-        st.error("🚨 CIRCUIT BREAKER")
+        st.error("[CIRCUIT BREAKER]")
     else:
-        st.success("✅ Trading Active")
+        st.success("[TRADING ACTIVE]")
 
     st.divider()
     st.caption(f"Drawdown limit: {RISK.max_daily_drawdown_pct:.0%}")
@@ -617,11 +669,11 @@ with st.sidebar:
 # ═══════════════════════════════════════════════════════════════════════
 #  PAGE 1: TERMINAL (Main Dashboard)
 # ═══════════════════════════════════════════════════════════════════════
-if page == "📊 Terminal":
-    # Header
+if page == "Terminal":
     st.markdown("""
     <div class="pro-header">
-        <h1>AlgoTerminal Pro — NSE / BSE / MCX</h1>
+        <h1>ALGO TRADING TERMINAL</h1>
+        <p>Real-Time Execution & Analytics Engine</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -631,9 +683,13 @@ if page == "📊 Terminal":
         bdf = data["bars"].get(tk, pd.DataFrame())
         if not bdf.empty:
             last = bdf["close"].iloc[-1]
-            prev = bdf["close"].iloc[-2] if len(bdf) > 1 else last
-            chg = last - prev
-            chg_pct = (chg / prev * 100) if prev != 0 else 0
+            last = bdf["close"].iloc[-1]
+            prev_close = data["prev_closes"].get(tk, last)
+            if prev_close == 0:
+                prev_close = last
+            
+            chg = last - prev_close
+            chg_pct = (chg / prev_close * 100) if prev_close != 0 else 0
             cls = "tk-up" if chg >= 0 else "tk-down"
             arrow = "▲" if chg >= 0 else "▼"
             tape_items.append(
@@ -661,8 +717,13 @@ if page == "📊 Terminal":
 
     with col_eq:
         st.markdown('<div class="section-hdr"><h4>Equity Curve</h4></div>', unsafe_allow_html=True)
-        eq_df = data["equity_curve"]
+        eq_df = data["equity_curve"].copy()
         if not eq_df.empty:
+            eq_df["timestamp"] = pd.to_datetime(eq_df["timestamp"])
+            if eq_df["timestamp"].dt.tz is None:
+                eq_df["timestamp"] = eq_df["timestamp"].dt.tz_localize("UTC")
+            eq_df["timestamp"] = eq_df["timestamp"].dt.tz_convert('Asia/Kolkata')
+
             fig_eq = go.Figure()
             fig_eq.add_trace(go.Scatter(
                 x=eq_df["timestamp"], y=eq_df["equity"],
@@ -678,13 +739,37 @@ if page == "📊 Terminal":
             st.plotly_chart(fig_eq, use_container_width=True)
 
     with col_chart:
-        st.markdown(f'<div class="section-hdr"><h4>Quick View — {selected_ticker}</h4></div>', unsafe_allow_html=True)
+        # Title and Timeframe Selector side-by-side
+        q_col1, q_col2 = st.columns([3, 1])
+        with q_col1:
+            st.markdown(f'<div class="section-hdr"><h4>Quick View — {selected_ticker}</h4></div>', unsafe_allow_html=True)
+        with q_col2:
+            tf = st.selectbox("Timeframe", ["1m", "5m", "15m", "30m", "1h", "1d"], index=0, key="quick_tf", label_visibility="collapsed")
+            
         bar_df = data["bars"].get(selected_ticker, pd.DataFrame())
         if not bar_df.empty:
+            plot_df = bar_df.copy()
+            plot_df["timestamp"] = pd.to_datetime(plot_df["timestamp"])
+            if plot_df["timestamp"].dt.tz is None:
+                plot_df["timestamp"] = plot_df["timestamp"].dt.tz_localize("UTC")
+            plot_df["timestamp"] = plot_df["timestamp"].dt.tz_convert('Asia/Kolkata')
+            
+            # Resample if needed
+            if tf != "1m":
+                rule_map = {"1m": "1T", "5m": "5T", "15m": "15T", "30m": "30T", "1h": "1H", "1d": "1D"}
+                plot_df.set_index("timestamp", inplace=True)
+                plot_df = plot_df.resample(rule_map[tf]).agg({
+                    'open': 'first',
+                    'high': 'max',
+                    'low': 'min',
+                    'close': 'last'
+                }).dropna()
+                plot_df.reset_index(inplace=True)
+                
             fig_q = go.Figure(data=[go.Candlestick(
-                x=bar_df["timestamp"],
-                open=bar_df["open"], high=bar_df["high"],
-                low=bar_df["low"], close=bar_df["close"],
+                x=plot_df["timestamp"],
+                open=plot_df["open"], high=plot_df["high"],
+                low=plot_df["low"], close=plot_df["close"],
                 increasing_line_color="#3fb950", decreasing_line_color="#f85149",
             )])
             fig_q.update_layout(
@@ -714,23 +799,61 @@ if page == "📊 Terminal":
     else:
         st.info("No open positions")
 
-    # ── Mini Charts Grid ──────────────────────────────────────────────
-    st.markdown('<div class="section-hdr"><h4>Market Overview</h4></div>', unsafe_allow_html=True)
-    tickers_with_data = [t for t in SYSTEM.tickers if not data["bars"].get(t, pd.DataFrame()).empty]
+    # ── Mini Charts Grid & Breadth ───────────────────────────────────────────
+    st.markdown('<div class="section-hdr"><h4>Market Breadth & Overview</h4></div>', unsafe_allow_html=True)
+    
+    # FIX: Loop over all data streams rather than just the initial list
+    tickers_with_data = [t for t in data["bars"].keys() if not data["bars"][t].empty]
+    
+    # Calculate changes and sort by Gainers/Losers
+    ticker_stats = []
+    advances = 0
+    declines = 0
+    for tk in tickers_with_data:
+        bdf = data["bars"][tk]
+        last_c = bdf["close"].iloc[-1]
+        prev_close = data["prev_closes"].get(tk, last_c)
+        if prev_close == 0: prev_close = last_c
+        chg_pct = ((last_c - prev_close) / prev_close * 100) if prev_close else 0
+        ticker_stats.append((tk, chg_pct, last_c, bdf))
+        if chg_pct >= 0:
+            advances += 1
+        else:
+            declines += 1
+            
+    # Draw Breadth Bar (Sleek CSS without emojis)
     if tickers_with_data:
+        total = len(tickers_with_data)
+        adv_pct = (advances / total) * 100
+        dec_pct = (declines / total) * 100
+        st.markdown(f'''
+        <div style="display: flex; height: 4px; border-radius: 0px; overflow: hidden; margin-bottom: 8px;">
+            <div style="width: {adv_pct}%; background-color: #00ff41;" title="{advances} Advances"></div>
+            <div style="width: {dec_pct}%; background-color: #ff3333;" title="{declines} Declines"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #666666; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 1px;">
+            <span>Advances: {advances}</span>
+            <span>Declines: {declines}</span>
+        </div>
+        ''', unsafe_allow_html=True)
+
+    # Sort from highest gainer to lowest loser
+    ticker_stats.sort(key=lambda x: x[1], reverse=True)
+
+    if ticker_stats:
         cols_per_row = 5
-        for row_start in range(0, min(len(tickers_with_data), 15), cols_per_row):
-            batch = tickers_with_data[row_start:row_start + cols_per_row]
+        for row_start in range(0, min(len(ticker_stats), 15), cols_per_row):
+            batch = ticker_stats[row_start:row_start + cols_per_row]
             cols = st.columns(len(batch))
-            for col, tk in zip(cols, batch):
+            for col, (tk, chg_pct, last_c, bdf) in zip(cols, batch):
                 with col:
-                    bdf = data["bars"][tk]
-                    last_c = bdf["close"].iloc[-1]
-                    first_c = bdf["close"].iloc[0]
-                    chg_pct = ((last_c - first_c) / first_c * 100) if first_c else 0
-                    color = "#3fb950" if chg_pct >= 0 else "#f85149"
+                    color = "#00ff41" if chg_pct >= 0 else "#ff3333"
                     r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
-                    st.markdown(f"**{tk}** <span style='color:{color}'>₹{last_c:.1f} ({chg_pct:+.1f}%)</span>", unsafe_allow_html=True)
+                    
+                    # Highlight big moves (>3%) without emojis (use subtle text tags)
+                    badge = " [!]" if chg_pct >= 3.0 or chg_pct <= -3.0 else ""
+                    
+                    st.markdown(f"**{tk}**<span style='color:var(--text-muted); font-size: 10px;'>{badge}</span> <span style='color:{color}'>₹{last_c:.1f} ({chg_pct:+.1f}%)</span>", unsafe_allow_html=True)
                     fig_m = go.Figure(go.Scatter(
                         x=bdf["timestamp"], y=bdf["close"],
                         mode="lines", line=dict(color=color, width=1.5),
@@ -748,10 +871,10 @@ if page == "📊 Terminal":
 # ═══════════════════════════════════════════════════════════════════════
 #  PAGE 2: NEWS ROOM
 # ═══════════════════════════════════════════════════════════════════════
-elif page == "📰 News Room":
+elif page == "News Room":
     st.markdown("""
     <div class="pro-header">
-        <h1>📰 Live News Room — Indian Markets</h1>
+        <h1>MARKET NEWS & SENTIMENT</h1>
     </div>
     """, unsafe_allow_html=True)
 
@@ -823,10 +946,10 @@ elif page == "📰 News Room":
 # ═══════════════════════════════════════════════════════════════════════
 #  PAGE 3: CHART LAB — Professional Interactive Charts
 # ═══════════════════════════════════════════════════════════════════════
-elif page == "📈 Chart Lab":
-    st.markdown(f"""
+elif page == "Chart Lab":
+    st.markdown("""
     <div class="pro-header">
-        <h1>📈 Chart Lab — {selected_ticker}</h1>
+        <h1>CHART LAB</h1>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1197,10 +1320,10 @@ elif page == "📈 Chart Lab":
 # ═══════════════════════════════════════════════════════════════════════
 #  PAGE 4: P&L ANALYTICS
 # ═══════════════════════════════════════════════════════════════════════
-elif page == "💰 P&L Analytics":
+elif page == "P&L Analytics":
     st.markdown("""
     <div class="pro-header">
-        <h1>💰 Profit & Loss Analytics</h1>
+        <h1>P&L ANALYTICS</h1>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1316,10 +1439,10 @@ elif page == "💰 P&L Analytics":
 # ═══════════════════════════════════════════════════════════════════════
 #  PAGE 5: STRATEGY HUB
 # ═══════════════════════════════════════════════════════════════════════
-elif page == "🎯 Strategy Hub":
+elif page == "Strategy Hub":
     st.markdown("""
     <div class="pro-header">
-        <h1>🎯 Strategy Comparison & Analysis</h1>
+        <h1>STRATEGY HUB</h1>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1410,10 +1533,10 @@ elif page == "🎯 Strategy Hub":
 # ═══════════════════════════════════════════════════════════════════════
 #  PAGE 6: TRADE LOG
 # ═══════════════════════════════════════════════════════════════════════
-elif page == "📋 Trade Log":
+elif page == "Trade Log":
     st.markdown("""
     <div class="pro-header">
-        <h1>📋 Complete Trade Log</h1>
+        <h1>EXECUTION LOG</h1>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1436,7 +1559,15 @@ elif page == "📋 Trade Log":
         if log_strat != "All":
             filtered_trades = filtered_trades[filtered_trades["strategy"] == log_strat]
 
-        st.metric("Showing", f"{len(filtered_trades)} trades")
+        total_trades = len(filtered_trades)
+        total_pnl = filtered_trades["pnl"].sum() if "pnl" in filtered_trades.columns else 0.0
+        win_trades = len(filtered_trades[filtered_trades["pnl"] > 0]) if "pnl" in filtered_trades.columns else 0
+        win_rate = (win_trades / total_trades * 100) if total_trades > 0 else 0.0
+        
+        mc1, mc2, mc3 = st.columns(3)
+        mc1.metric("Trades Filtered", f"{total_trades}")
+        mc2.metric("Total P&L", f"₹{total_pnl:+,.2f}")
+        mc3.metric("Win Rate", f"{win_rate:.1f}%")
 
         display_cols = [c for c in filtered_trades.columns if c not in ("trade_number", "cumulative_pnl", "result")]
         tl = filtered_trades[display_cols].copy() if display_cols else filtered_trades.copy()
@@ -1455,8 +1586,40 @@ elif page == "📋 Trade Log":
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Auto-refresh
+#  PAGE 7: DIVIDENDS
 # ═══════════════════════════════════════════════════════════════════════
-if auto_refresh:
-    time.sleep(5)
-    st.rerun()
+elif page == "Dividends":
+    st.markdown("""
+    <div class="pro-header">
+        <h1>CORPORATE ACTIONS</h1>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.caption("Historical price impact and upcoming dividend events for the current universe.")
+    
+    div_data = data.get("dividends", [])
+    if div_data:
+        df_div = pd.DataFrame(div_data)
+        
+        # Apply some coloring to Impact
+        def _color_impact(val):
+            if isinstance(val, str) and "%" in val:
+                num = float(val.replace("%", "").replace("+", ""))
+                return f"color: {'#3fb950' if num >= 0 else '#f85149'}; font-weight: bold"
+            return ""
+            
+        styled_div = df_div.style.map(_color_impact, subset=["Impact"])
+        st.dataframe(styled_div, use_container_width=True, hide_index=True)
+    else:
+        st.info("No corporate actions data available yet. Background pipeline is fetching...")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Auto-refresh (1 second)
+# ═══════════════════════════════════════════════════════════════════════
+# Disable auto-refresh on text-heavy pages so the user can read without interruption
+if page in ["Terminal", "Chart Lab", "P&L Analytics"]:
+    time.sleep(1)
+    _rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+    if _rerun:
+        _rerun()

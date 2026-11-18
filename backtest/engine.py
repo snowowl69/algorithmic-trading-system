@@ -86,8 +86,11 @@ class BacktestEngine:
             self.risk.close_position(ticker, float(last_bar["close"]))
 
         log.info(
-            "Backtest complete — final equity INR %.2f  trades=%d",
+            "Backtest complete — final equity INR %.2f  trades=%d  "
+            "slippage=INR %.2f  commission=INR %.2f",
             self.risk.equity, len(self.risk.closed_trades),
+            self.executor.total_slippage_cost,
+            self.executor.total_commission_cost,
         )
 
         return pd.DataFrame(self.equity_curve)
@@ -100,7 +103,16 @@ class BacktestEngine:
         for sig in exit_signals:
             self._execute_exit(sig, bar.close)
 
-        # b) Strategies: generate entry/exit signals
+        # b) Record equity AFTER exits — fixes equity curve gaps
+        snap = self.risk.snapshot()
+        self.equity_curve.append({
+            "timestamp": bar.timestamp,
+            "equity": snap.equity,
+            "cash": snap.cash,
+            "drawdown_pct": snap.drawdown_pct,
+        })
+
+        # c) Strategies: generate entry/exit signals
         for strat in self.strategies:
             signal = strat.on_bar(bar)
             if signal is None:
@@ -111,15 +123,6 @@ class BacktestEngine:
                 self._execute_entry(signal, bar.close)
             elif signal.signal_type in (SignalType.LONG_EXIT, SignalType.SHORT_EXIT):
                 self._execute_exit(signal, bar.close)
-
-        # c) Record equity snapshot
-        snap = self.risk.snapshot()
-        self.equity_curve.append({
-            "timestamp": bar.timestamp,
-            "equity": snap.equity,
-            "cash": snap.cash,
-            "drawdown_pct": snap.drawdown_pct,
-        })
 
     def _execute_entry(self, signal: Signal, price: float) -> None:
         if not self.risk.approve_signal(signal, price):

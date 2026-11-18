@@ -11,6 +11,7 @@ Zerodha Kite Connect) by subclassing ``BaseFeed``.
 
 from __future__ import annotations
 
+import concurrent.futures
 import threading
 import time
 from datetime import datetime, timezone
@@ -42,6 +43,7 @@ class IndianMarketFeed:
         self._thread: Optional[threading.Thread] = None
         self._running = threading.Event()
         self._latest_bars: Dict[str, Bar] = {}
+        self.prev_closes: Dict[str, float] = {}
 
     def start(self) -> None:
         if self._running.is_set():
@@ -85,19 +87,35 @@ class IndianMarketFeed:
 
         from data_engine.historical_loader import _YFINANCE_MAP
 
-        for ticker in self.tickers:
+        def fetch_ticker(ticker: str) -> None:
             if not self._running.is_set():
                 return
             try:
                 yf_sym = _YFINANCE_MAP.get(ticker, f"{ticker}.NS")
                 tk = yf.Ticker(yf_sym)
+                
+                # Fetch prev_close on first run
+                if ticker not in self.prev_closes:
+                    try:
+                        self.prev_closes[ticker] = float(tk.fast_info['previous_close'])
+                    except Exception as e:
+                        log.debug("Could not get previous_close for %s: %s", ticker, e)
+                        self.prev_closes[ticker] = 0.0
+
                 hist = tk.history(period="1d", interval="1m")
                 if hist.empty:
-                    continue
+                    return
                 last = hist.iloc[-1]
+                # Use exchange timestamp when available, fall back to local time
+                try:
+                    exchange_ts = hist.index[-1].to_pydatetime()
+                    if exchange_ts.tzinfo is None:
+                        exchange_ts = exchange_ts.replace(tzinfo=timezone.utc)
+                except Exception:
+                    exchange_ts = datetime.now(timezone.utc)
                 bar = Bar(
                     ticker=ticker,
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=exchange_ts,
                     open=float(last.get("Open", last.get("Close", 0))),
                     high=float(last.get("High", last.get("Close", 0))),
                     low=float(last.get("Low", last.get("Close", 0))),
@@ -106,9 +124,31 @@ class IndianMarketFeed:
                 )
                 self._latest_bars[ticker] = bar
                 bus.publish("market:bar", bar)
-                log.debug("Bar ► %s ₹%.2f vol=%d", ticker, bar.close, bar.volume)
-            except Exception:
-                log.debug("Failed to fetch %s — skipping", ticker)
+                log.info("Bar >> %s INR %.2f vol=%d", ticker, bar.close, bar.volume)
+            except Exception as exc:
+                log.warning("Failed to fetch %s: %s", ticker, exc)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+            futures = [executor.submit(fetch_ticker, t) for t in self.tickers]
+            concurrent.futures.wait(futures)
+        fetched = len(self._latest_bars)
+        log.info("Feed poll complete — %d / %d tickers updated", fetched, len(self.tickers))
+        
+        # Check for dynamic tickers added from the dashboard
+        try:
+            import os
+            txt_path = os.path.join("data", "dynamic_tickers.txt")
+            if os.path.exists(txt_path):
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    new_tickers = [line.strip() for line in f if line.strip()]
+                for t in new_tickers:
+                    if t not in self.tickers:
+                        self.tickers.append(t)
+                        log.info("Dynamically added ticker to engine: %s", t)
+                # clear file so we don't read it endlessly
+                open(txt_path, "w").close()
+        except Exception as e:
+            log.debug("Failed to read dynamic tickers: %s", e)
 
 
 class SyntheticFeed:
@@ -122,6 +162,7 @@ class SyntheticFeed:
         self._thread: Optional[threading.Thread] = None
         self._running = threading.Event()
         self._latest_bars: Dict[str, Bar] = {}
+        self.prev_closes: Dict[str, float] = {}
 
     def start(self) -> None:
         if self._running.is_set():

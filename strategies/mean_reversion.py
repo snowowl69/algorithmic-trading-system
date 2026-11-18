@@ -37,7 +37,7 @@ class MeanReversionStrategy(BaseStrategy):
 
         closes = self._closes(ticker)[-self.lookback:]
         mean = float(np.mean(closes))
-        std = float(np.std(closes))
+        std = float(np.std(closes, ddof=1))
         if std == 0:
             return None
 

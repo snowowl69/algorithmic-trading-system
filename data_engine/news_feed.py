@@ -24,6 +24,9 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+FINNHUB_API_KEY = "d91qqj9r01qnchjo3p20d91qqj9r01qnchjo3p2g"
+ALPHAVANTAGE_API_KEY = "816YFOZ4TWETK17B"
+
 
 # ═══════════════════════════════════════════════════════════════════════
 #  RSS Feed Sources — Major Indian Financial News
@@ -110,7 +113,7 @@ class NewsItem:
 
     def __post_init__(self):
         if not self.uid:
-            self.uid = hashlib.md5(
+            self.uid = hashlib.sha256(
                 (self.title + self.source).encode()
             ).hexdigest()[:12]
 
@@ -257,6 +260,77 @@ def fetch_feed(source_name: str, url: str, timeout: int = 10) -> list[NewsItem]:
     return items
 
 
+def fetch_finnhub_news(timeout: int = 5) -> list[NewsItem]:
+    """Fetch live market news from Finnhub."""
+    if not FINNHUB_API_KEY:
+        return []
+    url = f"https://finnhub.io/api/v1/news?category=general&token={FINNHUB_API_KEY}"
+    items = []
+    try:
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        for article in data[:30]:  # process top 30
+            title = article.get("headline", "")
+            desc = article.get("summary", "")
+            if not title:
+                continue
+            pub_date = datetime.fromtimestamp(article.get("datetime", time.time()), tz=timezone.utc)
+            full_text = title + " " + desc
+            news = NewsItem(
+                title=title,
+                link=article.get("url", ""),
+                source=article.get("source", "Finnhub"),
+                published=pub_date,
+                description=desc[:300],
+                tickers=_match_tickers(full_text),
+                category=_categorize(full_text)
+            )
+            news.importance = _assess_importance(news)
+            items.append(news)
+    except Exception as e:
+        logger.warning("Finnhub fetch failed: %s", e)
+    return items
+
+def fetch_alphavantage_news(timeout: int = 5) -> list[NewsItem]:
+    """Fetch global sentiment from AlphaVantage."""
+    if not ALPHAVANTAGE_API_KEY:
+        return []
+    url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&limit=30&apikey={ALPHAVANTAGE_API_KEY}"
+    items = []
+    try:
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        feed = data.get("feed", [])
+        for article in feed:
+            title = article.get("title", "")
+            desc = article.get("summary", "")
+            if not title:
+                continue
+            # AlphaVantage time format: 20220316T152700
+            time_str = article.get("time_published", "")
+            try:
+                pub_date = datetime.strptime(time_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
+            except ValueError:
+                pub_date = datetime.now(timezone.utc)
+                
+            full_text = title + " " + desc
+            news = NewsItem(
+                title=title,
+                link=article.get("url", ""),
+                source=article.get("source", "AlphaVantage"),
+                published=pub_date,
+                description=desc[:300],
+                tickers=_match_tickers(full_text),
+                category=_categorize(full_text)
+            )
+            news.importance = _assess_importance(news)
+            items.append(news)
+    except Exception as e:
+        logger.warning("AlphaVantage fetch failed: %s", e)
+    return items
+
 def fetch_all_news(
     max_per_source: int = 15,
     timeout: int = 8,
@@ -269,13 +343,21 @@ def fetch_all_news(
     all_items: list[NewsItem] = []
     seen_uids: set[str] = set()
 
+    def add_items(items_to_add: list[NewsItem]):
+        for item in items_to_add[:max_per_source]:
+            if item.uid not in seen_uids:
+                seen_uids.add(item.uid)
+                all_items.append(item)
+
+    # 1. Premium APIs
+    add_items(fetch_finnhub_news(timeout=timeout))
+    add_items(fetch_alphavantage_news(timeout=timeout))
+
+    # 2. RSS Feeds Fallback
     for source_name, url in RSS_FEEDS.items():
         try:
             items = fetch_feed(source_name, url, timeout=timeout)
-            for item in items[:max_per_source]:
-                if item.uid not in seen_uids:
-                    seen_uids.add(item.uid)
-                    all_items.append(item)
+            add_items(items)
         except Exception as e:
             logger.warning("Error processing %s: %s", source_name, e)
 

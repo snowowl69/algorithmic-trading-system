@@ -78,6 +78,66 @@ class TradeAnalytics:
             "max_consecutive_losses": streak_loss,
         }
 
+    # ── Risk-adjusted metrics ─────────────────────────────────────────
+
+    def risk_metrics(
+        self,
+        risk_free_rate: float = 0.06,
+        equity_curve: Optional[List[float]] = None,
+    ) -> Dict[str, Any]:
+        """Compute institutional-grade risk-adjusted performance metrics."""
+        pnls = np.array([t.get("pnl", 0.0) for t in self.trades])
+        if len(pnls) < 2:
+            return {
+                "sharpe_ratio": 0.0, "sortino_ratio": 0.0,
+                "calmar_ratio": 0.0, "max_drawdown_pct": 0.0,
+                "max_drawdown_duration": 0,
+            }
+
+        # Annualise assuming ~252 trading days
+        mean_ret = float(np.mean(pnls))
+        std_ret = float(np.std(pnls, ddof=1))
+        daily_rf = risk_free_rate / 252
+
+        # Sharpe Ratio
+        sharpe = ((mean_ret - daily_rf) / std_ret * np.sqrt(252)) if std_ret > 0 else 0.0
+
+        # Sortino Ratio — penalise only downside deviation
+        downside = pnls[pnls < 0]
+        downside_std = float(np.std(downside, ddof=1)) if len(downside) > 1 else 1.0
+        sortino = ((mean_ret - daily_rf) / downside_std * np.sqrt(252)) if downside_std > 0 else 0.0
+
+        # Max drawdown from equity curve
+        max_dd_pct = 0.0
+        max_dd_duration = 0
+        if equity_curve and len(equity_curve) > 1:
+            eq = np.array(equity_curve, dtype=float)
+            peak = np.maximum.accumulate(eq)
+            dd = (peak - eq) / np.where(peak > 0, peak, 1.0)
+            max_dd_pct = float(np.max(dd)) * 100
+
+            # Duration: longest streak below peak
+            below_peak = eq < peak
+            dur = 0
+            for b in below_peak:
+                if b:
+                    dur += 1
+                    max_dd_duration = max(max_dd_duration, dur)
+                else:
+                    dur = 0
+
+        # Calmar Ratio
+        total_return_pct = float(np.sum(pnls))
+        calmar = (total_return_pct / max_dd_pct) if max_dd_pct > 0 else 0.0
+
+        return {
+            "sharpe_ratio": round(sharpe, 4),
+            "sortino_ratio": round(sortino, 4),
+            "calmar_ratio": round(calmar, 4),
+            "max_drawdown_pct": round(max_dd_pct, 2),
+            "max_drawdown_duration": max_dd_duration,
+        }
+
     # ── Per-strategy breakdown ────────────────────────────────────────
 
     def by_strategy(self) -> Dict[str, Dict[str, Any]]:

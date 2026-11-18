@@ -75,7 +75,9 @@ class MomentumStrategy(BaseStrategy):
     # ── utilities ─────────────────────────────────────────────────────
     @staticmethod
     def _ema(data: np.ndarray, window: int) -> float:
-        """Compute the latest Exponential Moving Average value."""
-        weights = np.exp(np.linspace(-1.0, 0.0, window))
-        weights /= weights.sum()
-        return float(np.convolve(data, weights, mode="valid")[-1])
+        """Compute the latest Exponential Moving Average value using the standard recursive formula."""
+        alpha = 2.0 / (window + 1)
+        ema_val = float(data[0])
+        for price in data[1:]:
+            ema_val = alpha * float(price) + (1.0 - alpha) * ema_val
+        return ema_val

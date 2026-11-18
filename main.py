@@ -10,9 +10,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import signal as os_signal
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -30,6 +32,7 @@ from core.models import Bar, SentimentResult, Signal, SignalType
 from data_engine.market_feed import create_feed
 from data_engine.nlp_sentiment import SentimentPipeline
 from data_engine.database import TradeDatabase
+from data_engine.corporate_actions import CorporateActionsPipeline
 from execution.order_executor import OrderExecutor
 from risk.risk_manager import RiskManager
 from strategies.base_strategy import BaseStrategy
@@ -52,9 +55,13 @@ class TradingEngine:
         # Sub-systems
         self.feed = create_feed()
         self.sentiment = SentimentPipeline()
+        self.corporate_actions = CorporateActionsPipeline()
         self.risk = RiskManager(initial_equity=10_00_000.0)  # ₹10 lakh
         self.executor = OrderExecutor(live=live)
         self.db = TradeDatabase()
+        
+        # Thread pool for processing signals and state concurrently
+        self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
         # Strategies
         self.strategies: List[BaseStrategy] = [
@@ -62,6 +69,11 @@ class TradingEngine:
             MeanReversionStrategy(tickers=SYSTEM.tickers),
             SentimentStrategy(tickers=SYSTEM.tickers),
         ]
+
+        # Dashboard State Tracking
+        self._bars_history: Dict[str, List[Dict]] = {t: [] for t in SYSTEM.tickers}
+        self._equity_curve: List[Dict] = []
+        self._sentiment_feed: List[Dict] = []
 
         self._running = True
 
@@ -78,6 +90,7 @@ class TradingEngine:
         bus.subscribe("risk:circuit_breaker", self._on_circuit_breaker)
         self.feed.start()
         self.sentiment.start()
+        self.corporate_actions.start()
         self.risk.reset_daily()
         try:
             while self._running:
@@ -89,6 +102,43 @@ class TradingEngine:
                     snap.equity, snap.daily_pnl, snap.daily_pnl_pct,
                     snap.open_positions, self.risk.is_halted,
                 )
+                
+                # ── Ingest Manual Trades ──
+                import os, json
+                manual_trades_path = os.path.join("data", "manual_trades.json")
+                if os.path.exists(manual_trades_path):
+                    try:
+                        with open(manual_trades_path, "r", encoding="utf-8") as f:
+                            mtrades = json.load(f)
+                        for mt in mtrades:
+                            qty = mt.get("qty", 0)
+                            entry = mt.get("entry", 0.0)
+                            exit_px = mt.get("exit", 0.0)
+                            side = mt.get("side", "buy").upper()
+                            direction = 1.0 if side == "BUY" else -1.0
+                            pnl = (exit_px - entry) * qty * direction if exit_px > 0 else 0.0
+                            
+                            self.risk.closed_trades.append({
+                                "ticker": mt.get("ticker", "UNKNOWN"),
+                                "side": side,
+                                "entry": entry,
+                                "exit": exit_px,
+                                "qty": qty,
+                                "pnl": round(pnl, 2),
+                                "strategy": "MANUAL",
+                                "closed_at": mt.get("timestamp", datetime.datetime.now(timezone.utc).isoformat())
+                            })
+                            # Adjust equity for manual trade PnL
+                            self.risk.equity += pnl
+                            log.info("Ingested Manual Trade: %s %s %d @ %.2f (PnL: %.2f)", side, mt.get("ticker"), qty, entry, pnl)
+                        
+                        # Clear the file after ingestion
+                        os.remove(manual_trades_path)
+                    except Exception as e:
+                        log.error("Failed to ingest manual trades: %s", e)
+                # ── Crash recovery: persist state to DB on every heartbeat ──
+                # Run persistence in background thread to avoid blocking trading loop
+                self._pool.submit(self._persist_state, snap)
         except KeyboardInterrupt:
             log.info("Shutdown requested — stopping …")
         finally:
@@ -98,33 +148,131 @@ class TradingEngine:
         self._running = False
         self.feed.stop()
         self.sentiment.stop()
+        self.corporate_actions.stop()
+        self._pool.shutdown(wait=False)
+        # Final state save on shutdown
+        try:
+            snap = self.risk.snapshot()
+            self._persist_state(snap)
+            if self.risk.closed_trades:
+                self.db.insert_trades_bulk(self.risk.closed_trades)
+                log.info("Saved %d trades to database on shutdown", len(self.risk.closed_trades))
+        except Exception:
+            log.exception("Failed to persist final state on shutdown")
+        self.db.close()
         log.info("Trading engine stopped.")
+
+    # ── state persistence ──────────────────────────────────────────────────
+
+    def _persist_state(self, snap) -> None:
+        """Save equity snapshot to DB and publish state for the dashboard."""
+        try:
+            self.db.insert_equity_snapshot(
+                equity=snap.equity, cash=snap.cash, pnl=snap.daily_pnl
+            )
+            
+            # ── Dashboard State Publishing ──
+            self._equity_curve.append({
+                "timestamp": snap.timestamp.isoformat(),
+                "equity": snap.equity,
+            })
+            if len(self._equity_curve) > 500:
+                self._equity_curve.pop(0)
+                
+            positions = []
+            for p in self.risk.positions.values():
+                positions.append({
+                    "Ticker": p.ticker,
+                    "Side": p.side.value.upper(),
+                    "Qty": p.quantity,
+                    "Entry": p.avg_entry_price,
+                    "Current": p.current_price,
+                    "Unrealized PnL": p.unrealized_pnl,
+                    "Stop Loss": p.stop_loss,
+                    "Take Profit": p.take_profit,
+                    "Strategy": p.strategy_name
+                })
+                
+            import dataclasses
+            snap_dict = dataclasses.asdict(snap)
+            snap_dict["halted"] = self.risk.is_halted
+            
+            from core.state_store import publish_snapshot
+            publish_snapshot(
+                snapshot=snap_dict,
+                positions=positions,
+                bars=self._bars_history,
+                sentiment_feed=self._sentiment_feed,
+                trade_log=self.risk.closed_trades,
+                equity_curve=self._equity_curve,
+                prev_closes=getattr(self.feed, 'prev_closes', {}),
+                dividends=self.corporate_actions.dividend_results,
+            )
+        except Exception:
+            log.exception("Failed to persist state snapshot")
 
     # ── event handlers ────────────────────────────────────────────────
 
     def _on_bar(self, bar: Bar) -> None:
         """Process a new price bar through the full pipeline."""
+        # ── Track for Dashboard ──
+        bar_dict = {
+            "timestamp": bar.timestamp.isoformat(),
+            "open": bar.open,
+            "high": bar.high,
+            "low": bar.low,
+            "close": bar.close,
+            "volume": bar.volume,
+        }
+        hist = self._bars_history[bar.ticker]
+        if hist and hist[-1]["timestamp"] == bar_dict["timestamp"]:
+            hist[-1] = bar_dict
+        else:
+            hist.append(bar_dict)
+            
+        if len(hist) > 500:
+            hist.pop(0)
+
         exit_signals = self.risk.update_prices(bar)
         for sig in exit_signals:
             self.risk.close_position(sig.ticker, bar.close)
 
         if self.risk.is_halted:
             return
-        for strat in self.strategies:
-            signal = strat.on_bar(bar)
-            if signal is None:
-                continue
-            self._process_signal(signal, bar.close)
+            
+        def eval_strat(strat, _bar):
+            signal = strat.on_bar(_bar)
+            if signal:
+                self._process_signal(signal, _bar.close)
+
+        futures = [self._pool.submit(eval_strat, strat, bar) for strat in self.strategies]
+        # We don't block on futures; allow them to execute and route orders independently.
+        
     def _on_sentiment(self, result: SentimentResult) -> None:
         """Feed sentiment to strategies that react to it."""
+        # ── Track for Dashboard ──
+        self._sentiment_feed.append({
+            "Time": result.published_at.strftime("%H:%M"),
+            "Ticker": result.ticker,
+            "Headline": result.headline,
+            "Source": result.source,
+            "Sentiment": result.sentiment.value,
+            "Score": result.score,
+        })
+        if len(self._sentiment_feed) > 50:
+            self._sentiment_feed.pop(0)
+
+        def eval_sentiment_strat(strat, _result):
+            signal = strat.on_sentiment(_result)
+            if signal:
+                latest = self.feed.latest_bars.get(_result.ticker)
+                price = latest.close if latest else 0.0
+                if price > 0:
+                    self._process_signal(signal, price)
+
         for strat in self.strategies:
-            signal = strat.on_sentiment(result)
-            if signal is None:
-                continue
-            latest = self.feed.latest_bars.get(result.ticker)
-            price = latest.close if latest else 0.0
-            if price > 0:
-                self._process_signal(signal, price)
+            self._pool.submit(eval_sentiment_strat, strat, result)
+            
     def _on_circuit_breaker(self, reason: str) -> None:
         log.critical("CIRCUIT BREAKER → %s", reason)
     def _process_signal(self, signal: Signal, price: float) -> None:

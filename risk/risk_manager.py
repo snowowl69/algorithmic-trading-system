@@ -7,6 +7,8 @@ Responsibilities:
     3. Daily drawdown circuit breaker.
     4. Pre-trade risk checks (max positions, max single exposure).
     5. Real-time PnL & drawdown tracking.
+    6. **Trailing stops** — ratchet SL as price moves in favor.
+    7. **Dynamic Kelly** — compute win_rate / R from rolling trade history.
 
 All public methods are thread-safe.
 """
@@ -60,6 +62,10 @@ class RiskManager:
         self._halted = False
         self._halt_reason: Optional[str] = None
 
+        # Max drawdown duration tracking
+        self._bars_below_peak = 0
+        self.max_drawdown_duration = 0
+
     # ── Public API ────────────────────────────────────────────────────
 
     @property
@@ -108,14 +114,46 @@ class RiskManager:
 
             return True
 
-    # ── 2. Position sizing (Kelly Criterion) ──────────────────────────
+    # ── 2. Position sizing (Dynamic Kelly Criterion) ──────────────────
+
+    def _compute_dynamic_kelly_params(self) -> tuple[float, float]:
+        """
+        Compute win_rate and avg_win_loss_ratio from the rolling window
+        of closed trades. Falls back to conservative defaults when there
+        aren't enough trades.
+
+        This is the fix for hardcoded Kelly parameters — in a live system,
+        the market regime can shift and your historical win rate is the
+        only honest estimate you have.
+        """
+        window = RISK.dynamic_kelly_window
+        min_trades = RISK.dynamic_kelly_min_trades
+
+        if len(self.closed_trades) < min_trades:
+            # Not enough data — use conservative defaults
+            return 0.50, 1.2
+
+        recent = self.closed_trades[-window:]
+        pnls = [t.get("pnl", 0.0) for t in recent]
+
+        wins = [p for p in pnls if p > 0]
+        losses = [p for p in pnls if p < 0]
+
+        total = len(pnls)
+        win_rate = len(wins) / total if total > 0 else 0.50
+
+        avg_win = float(np.mean(wins)) if wins else 1.0
+        avg_loss = abs(float(np.mean(losses))) if losses else 1.0
+        avg_win_loss_ratio = avg_win / avg_loss if avg_loss > 0 else 1.5
+
+        return win_rate, avg_win_loss_ratio
 
     def compute_position_size(
         self,
         signal: Signal,
         current_price: float,
-        win_rate: float = 0.55,
-        avg_win_loss_ratio: float = 1.5,
+        win_rate: float = None,
+        avg_win_loss_ratio: float = None,
     ) -> float:
         """
         Compute the number of shares/units to trade using the Kelly formula:
@@ -123,9 +161,20 @@ class RiskManager:
             f* = (p * b - q) / b
 
         where p = win_rate, q = 1-p, b = avg_win_loss_ratio.
+
+        When win_rate and avg_win_loss_ratio are not explicitly provided,
+        they are **dynamically computed** from the rolling window of
+        recent closed trades (fixes the hardcoded defaults issue).
+
         The result is capped at ``kelly_fraction_cap`` and further limited
         by ``max_position_pct`` of current equity.
         """
+        # Dynamic Kelly: compute from trade history if not explicitly given
+        if win_rate is None or avg_win_loss_ratio is None:
+            dyn_wr, dyn_r = self._compute_dynamic_kelly_params()
+            win_rate = win_rate if win_rate is not None else dyn_wr
+            avg_win_loss_ratio = avg_win_loss_ratio if avg_win_loss_ratio is not None else dyn_r
+
         p = min(max(win_rate, 0.01), 0.99)
         q = 1.0 - p
         b = max(avg_win_loss_ratio, 0.01)
@@ -227,6 +276,8 @@ class RiskManager:
     def update_prices(self, bar: Bar) -> List[Signal]:
         """
         Update current price for a position and check SL / TP triggers.
+        Also applies **trailing stop** logic: if price moves in our favor
+        beyond the trailing threshold, ratchet the stop-loss up.
         Returns exit signals if triggered.
         """
         exit_signals: List[Signal] = []
@@ -237,6 +288,10 @@ class RiskManager:
 
             pos.current_price = bar.close
             pos.update_pnl()
+
+            # ── Trailing stop logic ───────────────────────────────────
+            if RISK.trailing_stop_enabled and pos.stop_loss is not None:
+                self._apply_trailing_stop(pos, bar)
 
             # Stop-loss check
             if pos.side == Side.BUY and bar.low <= (pos.stop_loss or 0):
@@ -254,9 +309,44 @@ class RiskManager:
             self._recalc_equity()
             self._check_circuit_breaker()
 
+            # Track drawdown duration
+            if self.equity < self.peak_equity:
+                self._bars_below_peak += 1
+                self.max_drawdown_duration = max(
+                    self.max_drawdown_duration, self._bars_below_peak
+                )
+            else:
+                self._bars_below_peak = 0
+
         return exit_signals
 
-    # ── 5. Circuit breaker ────────────────────────────────────────────
+    # ── 5. Trailing stop implementation ───────────────────────────────
+
+    def _apply_trailing_stop(self, pos: Position, bar: Bar) -> None:
+        """
+        Ratchet the stop-loss in the direction of profit.
+
+        For a LONG position: if the current high exceeds the entry price
+        by more than the trailing distance, move SL up.
+        For a SHORT position: if the current low is below entry, move SL down.
+
+        Uses a percentage-based trailing distance (default_stop_loss_pct)
+        since we don't have per-position ATR stored.
+        """
+        trail_distance = pos.avg_entry_price * RISK.default_stop_loss_pct
+
+        if pos.side == Side.BUY:
+            # Trail the stop-loss upward with the price
+            new_sl = round(bar.high - trail_distance, 4)
+            if new_sl > (pos.stop_loss or 0):
+                pos.stop_loss = new_sl
+        else:
+            # SHORT: trail the stop-loss downward
+            new_sl = round(bar.low + trail_distance, 4)
+            if new_sl < (pos.stop_loss or float("inf")):
+                pos.stop_loss = new_sl
+
+    # ── 6. Circuit breaker ────────────────────────────────────────────
 
     def _check_circuit_breaker(self) -> None:
         """Halt trading if daily drawdown exceeds threshold."""
@@ -272,7 +362,7 @@ class RiskManager:
             log.critical("🚨 CIRCUIT BREAKER TRIGGERED: %s", self._halt_reason)
             bus.publish("risk:circuit_breaker", self._halt_reason)
 
-    # ── 6. Snapshot ───────────────────────────────────────────────────
+    # ── 7. Snapshot ───────────────────────────────────────────────────
 
     def snapshot(self) -> PortfolioSnapshot:
         with self._lock:
@@ -301,11 +391,23 @@ class RiskManager:
     # ── helpers ───────────────────────────────────────────────────────
 
     def _recalc_equity(self) -> None:
-        unrealized = sum(p.unrealized_pnl for p in self.positions.values())
-        invested = sum(
-            p.avg_entry_price * p.quantity for p in self.positions.values()
+        """
+        Recompute total equity from cash + mark-to-market of open positions.
+
+        FIX: The old version computed `cash + invested + unrealized` which
+        double-counted invested capital because `cash` was already decremented
+        by the invested amount in `open_position()`.
+
+        Correct formula:
+            equity = cash + Σ(current_price × quantity) for all open positions
+
+        Where `cash` already has the entry cost subtracted, and
+        `current_price × quantity` is the current market value.
+        """
+        market_value = sum(
+            p.current_price * p.quantity for p in self.positions.values()
         )
-        self.equity = self.cash + invested + unrealized
+        self.equity = self.cash + market_value
         if self.equity > self.peak_equity:
             self.peak_equity = self.equity
 
