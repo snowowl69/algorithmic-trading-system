@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  trading-engine:
+    build: .
+    container_name: algo-trading-engine
+    restart: unless-stopped
+    command: ["python", "main.py"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - DATA_PROVIDER=yfinance
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+
+  dashboard:
+    build: .
+    container_name: algo-trading-dashboard
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    command: ["streamlit", "run", "dashboard/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - LOG_LEVEL=INFO
+    depends_on:
+      - trading-engine
