@@ -359,7 +359,7 @@ class RiskManager:
                 f"Daily drawdown {daily_pnl_pct:.2%} exceeds "
                 f"limit {-RISK.max_daily_drawdown_pct:.2%}"
             )
-            log.critical("🚨 CIRCUIT BREAKER TRIGGERED: %s", self._halt_reason)
+            log.critical("[ALERT] CIRCUIT BREAKER TRIGGERED: %s", self._halt_reason)
             bus.publish("risk:circuit_breaker", self._halt_reason)
 
     # ── 7. Snapshot ───────────────────────────────────────────────────

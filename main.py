@@ -33,12 +33,18 @@ from data_engine.market_feed import create_feed
 from data_engine.nlp_sentiment import SentimentPipeline
 from data_engine.database import TradeDatabase
 from data_engine.corporate_actions import CorporateActionsPipeline
+from data_engine.options_feed import LiveOptionsFeed
 from execution.order_executor import OrderExecutor
 from risk.risk_manager import RiskManager
 from strategies.base_strategy import BaseStrategy
 from strategies.mean_reversion import MeanReversionStrategy
 from strategies.momentum_strategy import MomentumStrategy
 from strategies.sentiment_strategy import SentimentStrategy
+from strategies.vwap_strategy import VWAPStrategy
+from strategies.options_signal_strategy import OptionsSignalStrategy
+from analytics.market_regime import MarketRegimeDetector
+from analytics.session_manager import get_session_info
+from analytics.trade_recommender import TradeRecommender
 
 log = get_logger("main")
 class TradingEngine:
@@ -56,9 +62,12 @@ class TradingEngine:
         self.feed = create_feed()
         self.sentiment = SentimentPipeline()
         self.corporate_actions = CorporateActionsPipeline()
+        self.options_feed = LiveOptionsFeed()
         self.risk = RiskManager(initial_equity=10_00_000.0)  # ₹10 lakh
         self.executor = OrderExecutor(live=live)
         self.db = TradeDatabase()
+        self.regime_detector = MarketRegimeDetector()
+        self.trade_recommender = TradeRecommender()
         
         # Thread pool for processing signals and state concurrently
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
@@ -68,6 +77,8 @@ class TradingEngine:
             MomentumStrategy(tickers=SYSTEM.tickers),
             MeanReversionStrategy(tickers=SYSTEM.tickers),
             SentimentStrategy(tickers=SYSTEM.tickers),
+            VWAPStrategy(tickers=SYSTEM.tickers),
+            OptionsSignalStrategy(tickers=SYSTEM.tickers),
         ]
 
         # Dashboard State Tracking
@@ -91,6 +102,7 @@ class TradingEngine:
         self.feed.start()
         self.sentiment.start()
         self.corporate_actions.start()
+        self.options_feed.start()
         self.risk.reset_daily()
         try:
             while self._running:
@@ -126,7 +138,7 @@ class TradingEngine:
                                 "qty": qty,
                                 "pnl": round(pnl, 2),
                                 "strategy": "MANUAL",
-                                "closed_at": mt.get("timestamp", datetime.datetime.now(timezone.utc).isoformat())
+                                "closed_at": mt.get("timestamp", datetime.now(timezone.utc).isoformat())
                             })
                             # Adjust equity for manual trade PnL
                             self.risk.equity += pnl
@@ -149,6 +161,7 @@ class TradingEngine:
         self.feed.stop()
         self.sentiment.stop()
         self.corporate_actions.stop()
+        self.options_feed.stop()
         self._pool.shutdown(wait=False)
         # Final state save on shutdown
         try:
@@ -197,6 +210,47 @@ class TradingEngine:
             snap_dict = dataclasses.asdict(snap)
             snap_dict["halted"] = self.risk.is_halted
             
+            regime_info = {}
+            primary_ticker = "RELIANCE" if "RELIANCE" in self._bars_history else (SYSTEM.tickers[0] if SYSTEM.tickers else "")
+            if primary_ticker and primary_ticker in self._bars_history and len(self._bars_history[primary_ticker]) >= 20:
+                import numpy as np
+                hist = self._bars_history[primary_ticker]
+                closes = np.array([b["close"] for b in hist])
+                highs = np.array([b["high"] for b in hist])
+                lows = np.array([b["low"] for b in hist])
+                res = self.regime_detector.detect(closes, highs, lows)
+                regime_info = {
+                    "regime": res["regime"].value if hasattr(res["regime"], "value") else str(res["regime"]),
+                    "adx_value": res.get("adx_value", 0.0),
+                    "atr_pct": res.get("atr_pct", 0.0),
+                    "bb_width": res.get("bb_width", 0.0),
+                    "squeeze": res.get("squeeze", False),
+                    "ticker": primary_ticker,
+                }
+
+            session_data = get_session_info()
+            session_info = {
+                "session": session_data["session"].value if hasattr(session_data["session"], "value") else str(session_data["session"]),
+                "label": session_data.get("label", ""),
+                "start_time": session_data.get("start_time", ""),
+                "end_time": session_data.get("end_time", ""),
+                "minutes_remaining": session_data.get("minutes_remaining", 0),
+                "should_avoid_entry": session_data.get("should_avoid_entry", False),
+                "is_orb_window": session_data.get("is_orb_window", False),
+            }
+
+            trade_suggestions = self.trade_recommender.generate_recommendations(
+                bars_dict=self._bars_history,
+                options_chains=self.options_feed.get_snapshot(),
+                regime_info=regime_info,
+                prev_closes=getattr(self.feed, 'prev_closes', {}),
+                sentiment_scores={
+                    s.get("ticker", ""): s.get("score", 0.0)
+                    for s in self._sentiment_feed[-20:] if isinstance(s, dict)
+                },
+                account_equity=snap.equity,
+            )
+
             from core.state_store import publish_snapshot
             publish_snapshot(
                 snapshot=snap_dict,
@@ -207,6 +261,11 @@ class TradingEngine:
                 equity_curve=self._equity_curve,
                 prev_closes=getattr(self.feed, 'prev_closes', {}),
                 dividends=self.corporate_actions.dividend_results,
+                options_chains=self.options_feed.get_snapshot(),
+                regime_info=regime_info,
+                session_info=session_info,
+                forming_candles=getattr(self.feed, 'get_forming_snapshots', lambda: {})(),
+                trade_suggestions=trade_suggestions,
             )
         except Exception:
             log.exception("Failed to persist state snapshot")
@@ -232,6 +291,9 @@ class TradingEngine:
             
         if len(hist) > 500:
             hist.pop(0)
+
+        # Update options desk spot pricing
+        self.options_feed.update_spot(bar.ticker, bar.close)
 
         exit_signals = self.risk.update_prices(bar)
         for sig in exit_signals:

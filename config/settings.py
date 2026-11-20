@@ -67,6 +67,12 @@ class StrategyConfig:
     mean_rev_z_exit: float = 0.2
     # Sentiment
     sentiment_extreme_score: float = 0.35  # absolute score threshold
+    # VWAP
+    vwap_volume_surge_multiplier: float = 1.5
+    # Options Signal
+    options_pcr_bullish: float = 1.3
+    options_pcr_bearish: float = 0.7
+    options_iv_rank_avoid: float = 80.0
 
 
 @dataclass(frozen=True)

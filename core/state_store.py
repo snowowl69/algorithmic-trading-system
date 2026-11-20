@@ -53,6 +53,11 @@ def publish_snapshot(
     equity_curve: List[Dict],
     prev_closes: Dict[str, float] = None,
     dividends: List[Dict] = None,
+    options_chains: Dict[str, Any] = None,
+    regime_info: Dict[str, Any] = None,
+    session_info: Dict[str, Any] = None,
+    forming_candles: Dict[str, Any] = None,
+    trade_suggestions: List[Dict] = None,
 ) -> None:
     """Convenience wrapper — packs all dashboard data into one write."""
     write_state({
@@ -64,6 +69,11 @@ def publish_snapshot(
         "equity_curve": equity_curve,
         "prev_closes": prev_closes or {},
         "dividends": dividends or [],
+        "options_chains": options_chains or {},
+        "regime_info": regime_info or {},
+        "session_info": session_info or {},
+        "forming_candles": forming_candles or {},
+        "trade_suggestions": trade_suggestions or [],
     })
 
 
