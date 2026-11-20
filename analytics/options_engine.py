@@ -22,7 +22,21 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
-from scipy.stats import norm
+
+try:
+    from scipy.stats import norm
+except ImportError:
+    class _NormFallback:
+        """Standard normal distribution CDF & PDF fallback using standard library math."""
+        @staticmethod
+        def cdf(x: float) -> float:
+            return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+        @staticmethod
+        def pdf(x: float) -> float:
+            return math.exp(-0.5 * x * x) / math.sqrt(2.0 * math.pi)
+
+    norm = _NormFallback()
 
 
 class OptionType(str, Enum):
